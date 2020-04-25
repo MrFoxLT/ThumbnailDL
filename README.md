@@ -6,9 +6,9 @@ Android application that saves Youtube video thumbnails. For now, functionality 
 
 #### Todo list:
 
-⋅⋅* Endless list
-⋅⋅* Larger image preview
-⋅⋅* Prettier theme
-⋅⋅* Handling intents from Youtube application
-⋅⋅* Application icon
-⋅⋅* Better name?
+* Endless list
+* Larger image preview
+* Prettier theme
+* Handling intents from Youtube application
+* Application icon
+* Better name?
