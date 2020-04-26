@@ -25,8 +25,15 @@ data class Snippet(
 data class VideoItem(
     @SerializedName("snippet") val snippet: Snippet,
     @SerializedName("id") val videoId: VideoId)
+{
+    companion object {
+        const val VISIBLE = 1
+        const val LOADING = 2
+    }
+
+}
 
 data class VideoListResponse(
     @SerializedName("nextPageToken") val nextPageToken: String,
-    @SerializedName("items") val items: List<VideoItem>
+    @SerializedName("items") val items: MutableList<VideoItem?>
 )

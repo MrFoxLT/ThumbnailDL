@@ -7,6 +7,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AbsListView
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
@@ -27,8 +28,11 @@ import lt.thumbnaildownloader.viewmodels.VideoSearchViewModel
 class VideoListFragment : Fragment(), SearchCallback {
 
     private lateinit var rvVideos: RecyclerView
-    private lateinit var viewModel: VideoSearchViewModel
+    private var viewModel: VideoSearchViewModel? = null
     private lateinit var navController: NavController
+    private var pageToken: String? = null
+    private var lastSearch: String? = null
+    private lateinit var adapter: VideoAdapter
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
 
@@ -36,19 +40,29 @@ class VideoListFragment : Fragment(), SearchCallback {
         return inflater.inflate(R.layout.fragment_video_list, container, false)
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        viewModel = ViewModelProvider(this).get(VideoSearchViewModel::class.java)
+
+
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         rvVideos = view.rv_video_list
 
-        viewModel = ViewModelProvider(this).get(VideoSearchViewModel::class.java)
+        lastSearch = viewModel?.firstSearch
 
-        viewModel.videoResult?.observe(viewLifecycleOwner, Observer {
+        viewModel?.videoResult?.observe(viewLifecycleOwner, Observer {
 
-            if(it != null) {
+            if (it != null) {
+                pageToken = it.nextPageToken
                 initRecyclerView(it.items)
             }
         })
+
     }
 
     override fun onAttach(context: Context) {
@@ -60,13 +74,22 @@ class VideoListFragment : Fragment(), SearchCallback {
 
     }
 
-    fun initRecyclerView(items: List<VideoItem>) {
+    fun addToRecyclerView(items: MutableList<VideoItem?>) {
+
+        if(adapter.items.last() == null) {
+            adapter.items.remove(adapter.items.last())
+        }
+
+        adapter.items.addAll(items)
+    }
+
+    fun initRecyclerView(items: MutableList<VideoItem?>) {
 
         val listener = object : VideoAdapter.VideoItemCallback {
             override fun onClickedSave(bitmap: Bitmap?, name: String, description: String) {
 
                 val result =
-                    viewModel.saveImage(bitmap, name!!, description!!, activity!!.contentResolver)
+                    viewModel?.saveImage(bitmap, name, description, activity!!.contentResolver)
 
                 if (result != null) {
                     Snackbar.make(view!!, "Image saved to ${result}!", Snackbar.LENGTH_SHORT).show()
@@ -76,21 +99,48 @@ class VideoListFragment : Fragment(), SearchCallback {
             }
         }
 
-        val adapter = VideoAdapter(items, context!!, listener)
+        adapter = VideoAdapter(items, context!!, listener)
         rvVideos.adapter = adapter
-        rvVideos.layoutManager = LinearLayoutManager(context!!)
+        val layoutManager = LinearLayoutManager(context!!)
+        rvVideos.layoutManager = layoutManager
+
+        rvVideos.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+
+                if (!recyclerView.canScrollVertically(1)) {
+                    if (items.last() != null) {
+                        items.add(null)
+                        adapter.notifyItemInserted(items.lastIndex)
+
+                        viewModel?.videoResult?.observe(viewLifecycleOwner, Observer {
+                            pageToken = it.nextPageToken
+
+                            if (it != null) {
+                                addToRecyclerView(it.items)
+                            }
+                        })
+
+                        viewModel?.searchForVideos(lastSearch!!, pageToken!!)
+                    }
+                }
+            }
+        })
 
         adapter.notifyDataSetChanged()
 
     }
 
-    override fun searchForVideo(query: String) {
-        viewModel.searchForVideos(query)
+    override fun searchForVideo(query: String, pageToken: String) {
+        lastSearch = query
+        viewModel?.searchForVideos(query)
 
-        // why does it work here bun not in onCreateView??????
-        viewModel.videoResult?.observe(viewLifecycleOwner, Observer {
+        viewModel?.videoResult?.observe(viewLifecycleOwner, Observer {
 
-            initRecyclerView(it.items)
+            if(it != null) {
+                initRecyclerView(it.items)
+            }
         })
     }
 }

@@ -21,13 +21,13 @@ class VideoRepository {
     fun searchForVideos(request: VideoListRequest): MutableLiveData<VideoListResponse> {
 
         val result = MutableLiveData<VideoListResponse>()
-        val call = webClient?.searchForVideos(request.part, request.maxResults, request.searchWord, request.key)
+        val call = webClient?.searchForVideos(request.part, request.maxResults, request.searchWord, request.pageToken, request.key)
 
         call?.enqueue(object: Callback<VideoListResponse> {
 
             override fun onResponse(call: Call<VideoListResponse>, response: Response<VideoListResponse>) {
 
-                result.postValue(response.body())
+                result.value = response.body()
             }
 
             override fun onFailure(call: Call<VideoListResponse>, t: Throwable) {
