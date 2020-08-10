@@ -1,6 +1,5 @@
 package lt.thumbnaildownloader.api
 
-import android.text.TextUtils
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit

@@ -1,6 +1,5 @@
 package lt.thumbnaildownloader.adapters
 
-import android.R.id
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -11,20 +10,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.bumptech.glide.RequestBuilder
-import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.target.CustomTarget
-import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.request.transition.Transition
+import com.google.android.material.button.MaterialButton
 import kotlinx.android.synthetic.main.item_video.view.*
 import lt.thumbnaildownloader.R
+import lt.thumbnaildownloader.interfaces.IVideoItemCallback
 import lt.thumbnaildownloader.models.VideoItem
-import java.io.FileNotFoundException
 
 
-class VideoAdapter(val items: MutableList<VideoItem?>, val context: Context, val listener: VideoItemCallback): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class VideoAdapter(private val items: MutableList<VideoItem?>, private val context: Context, val callback: IVideoItemCallback)
+    : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return if(viewType == VideoItem.VISIBLE) {
@@ -47,10 +46,12 @@ class VideoAdapter(val items: MutableList<VideoItem?>, val context: Context, val
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
 
         if(holder is ViewHolder && holder.itemViewType == VideoItem.VISIBLE) {
-            val imgUrl = "https://img.youtube.com/vi/${items[position]!!.videoId.id}/maxresdefault.jpg"
-            val fallbackUrl = "https://img.youtube.com/vi/${items[position]!!.videoId.id}/hqdefault.jpg"
 
-//            Glide.with(context).load(items[position].snippet.thumbnails["high"]?.url).into(holder.imgThumbnail)
+            val item = items[position]
+
+            val imgUrl = "https://img.youtube.com/vi/${item!!.videoId.id}/maxresdefault.jpg"
+            val fallbackUrl = "https://img.youtube.com/vi/${item.videoId.id}/hqdefault.jpg"
+
             holder.tvVideoName.text = items[position]!!.snippet.title
             holder.tvChannelName.text = items[position]!!.snippet.channelTitle
 
@@ -58,13 +59,12 @@ class VideoAdapter(val items: MutableList<VideoItem?>, val context: Context, val
                 Glide.with(context).load(fallbackUrl)
             ).into(holder.imgThumbnail)
 
-
             holder.btnWatch.setOnClickListener {
 
-                val appIntent = Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:${items[position]!!.videoId.id}"))
+                val appIntent = Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:${item.videoId.id}"))
                 val webIntent = Intent(
                     Intent.ACTION_VIEW,
-                    Uri.parse("http://www.youtube.com/watch?v=${items[position]!!.videoId.id}")
+                    Uri.parse("http://www.youtube.com/watch?v=${item.videoId.id}")
                 )
                 try {
                     context.startActivity(appIntent)
@@ -82,42 +82,55 @@ class VideoAdapter(val items: MutableList<VideoItem?>, val context: Context, val
                     .load(imgUrl).into(object: CustomTarget<Bitmap>() {
 
                         override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
-//                            CoroutineScope(Dispatchers.IO).launch {
                                 bitmap = resource
-                                listener.onClickedSave(bitmap,
-                                    items[position]!!.snippet.title + ".jpg",
-                                    items[position]!!.snippet.description)
-//                            }
+                                callback.onClickedSave(bitmap,
+                                    item.snippet.title + ".jpg",
+                                    item.snippet.description)
                         }
 
-                        override fun onLoadCleared(placeholder: Drawable?) {
-                            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                        override fun onLoadCleared(placeholder: Drawable?) { }
+                    })
+            }
+
+            holder.imgThumbnail.setOnClickListener {
+                Glide.with(context)
+                    .asBitmap()
+                    .load(imgUrl).into(object: CustomTarget<Bitmap>() {
+                        override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                            callback.onClickedPreview(resource, item)
                         }
+                        override fun onLoadCleared(placeholder: Drawable?) { }
                     })
             }
         }
     }
 
-    fun loadImage() {
+    fun addItems(items: List<VideoItem?>) {
+        val oldSize = this.items.size
+        this.items.addAll(items)
+        notifyItemRangeInserted(oldSize, items.size)
+    }
 
-
+    fun removeLastNullItem() {
+        if(items.last() == null) {
+            val lastIndex = items.lastIndex
+            items.removeAt(lastIndex)
+            notifyItemRemoved(lastIndex)
+        }
     }
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
 
-        val imgThumbnail = view.img_thumbnail
-        val btnSave = view.btn_save
-        val btnWatch = view.btn_watch
-        val tvVideoName = view.tv_video_name
-        val tvChannelName = view.tv_channel_name
+        val imgThumbnail: ImageView = view.img_thumbnail
+        val btnSave: MaterialButton = view.btn_save
+        val btnWatch: MaterialButton = view.btn_watch
+        val tvVideoName: TextView = view.tv_video_name
+        val tvChannelName: TextView = view.tv_channel_name
     }
 
     inner class LoadingViewHolder(view: View) : RecyclerView.ViewHolder(view) {
 
     }
 
-    interface VideoItemCallback {
 
-        fun onClickedSave(bitmap: Bitmap?, name: String, description: String)
-    }
 }

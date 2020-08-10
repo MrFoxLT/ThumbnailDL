@@ -35,5 +35,11 @@ data class VideoItem(
 
 data class VideoListResponse(
     @SerializedName("nextPageToken") val nextPageToken: String,
-    @SerializedName("items") val items: MutableList<VideoItem?>
+    @SerializedName("items") val items: MutableList<VideoItem?>,
+    var message: String = "",
+    var isSuccessful: Boolean = false
 )
+{
+    constructor() : this("", mutableListOf(), "", false)
+
+}

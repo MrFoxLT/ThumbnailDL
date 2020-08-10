@@ -1,47 +1,46 @@
 package lt.thumbnaildownloader.api
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import lt.thumbnaildownloader.models.VideoItem
 import lt.thumbnaildownloader.models.VideoListRequest
 import lt.thumbnaildownloader.models.VideoListResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.io.IOException
 
 class VideoRepository {
 
-    private var webClient: YoutubeClient? = null
+    private var webClient: YoutubeClient = ClientGenerator.createService(YoutubeClient::class.java)
 
-    init {
-        webClient = ClientGenerator.createService(YoutubeClient::class.java)
-    }
+    suspend fun searchForVideos(request: VideoListRequest): VideoListResponse? {
 
-    fun searchForVideos(request: VideoListRequest): MutableLiveData<VideoListResponse> {
+        val result = webClient.searchForVideos(request.part, request.maxResults,
+            request.searchWord, request.pageToken, request.key)
 
-        val result = MutableLiveData<VideoListResponse>()
-        val call = webClient?.searchForVideos(request.part, request.maxResults, request.searchWord, request.pageToken, request.key)
+        var videoList: VideoListResponse? = null
 
-        call?.enqueue(object: Callback<VideoListResponse> {
+        Log.d("test", request.toString())
 
-            override fun onResponse(call: Call<VideoListResponse>, response: Response<VideoListResponse>) {
-
-                result.value = response.body()
+        try {
+            if(result.isSuccessful) {
+                videoList = result.body()
+                videoList!!.isSuccessful = true
             }
+            else {
+                videoList = VideoListResponse()
+                videoList.isSuccessful = false
 
-            override fun onFailure(call: Call<VideoListResponse>, t: Throwable) {
-                t.printStackTrace()
-                if (t is IOException) {
-
-                }
-                else {
-
-                }
+                videoList.message = if(result.message().isNotBlank())
+                    result.message()
+                else
+                    result.errorBody()!!.string()
             }
-        })
+        }
+        catch (e: Throwable) {
+            e.printStackTrace()
+        }
 
-        return result
+        return videoList
     }
 
 }

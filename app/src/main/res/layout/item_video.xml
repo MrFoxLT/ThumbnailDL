@@ -23,7 +23,9 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:src="@drawable/test_img"></ImageView>
+            tools:src="@drawable/test_img"
+            android:clickable="true"
+            android:foreground="?attr/selectableItemBackground"/>
 
         <TextView
             android:id="@+id/tv_video_name"
