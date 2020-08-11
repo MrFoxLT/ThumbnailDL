@@ -1,11 +1,8 @@
-package lt.thumbnaildownloader.adapters
+package lt.thumbnaildownloader.ui.adapters
 
-import android.content.ActivityNotFoundException
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
-import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,15 +15,17 @@ import com.bumptech.glide.request.transition.Transition
 import com.google.android.material.button.MaterialButton
 import kotlinx.android.synthetic.main.item_video.view.*
 import lt.thumbnaildownloader.R
+import lt.thumbnaildownloader.data.models.VideoItem
 import lt.thumbnaildownloader.interfaces.IVideoItemCallback
-import lt.thumbnaildownloader.models.VideoItem
 
 
-class VideoAdapter(private val items: MutableList<VideoItem?>, private val context: Context, val callback: IVideoItemCallback)
+class VideoAdapter(private val items: MutableList<VideoItem?>,
+                   private val context: Context,
+                   val callback: IVideoItemCallback)
     : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return if(viewType == VideoItem.VISIBLE) {
+        return if (viewType == VideoItem.VISIBLE) {
             ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_video, parent, false))
         }
         else {
@@ -35,7 +34,7 @@ class VideoAdapter(private val items: MutableList<VideoItem?>, private val conte
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if(items[position] == null) VideoItem.LOADING
+        return if (items[position] == null) VideoItem.LOADING
         else VideoItem.VISIBLE
     }
 
@@ -45,7 +44,7 @@ class VideoAdapter(private val items: MutableList<VideoItem?>, private val conte
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
 
-        if(holder is ViewHolder && holder.itemViewType == VideoItem.VISIBLE) {
+        if (holder is ViewHolder && holder.itemViewType == VideoItem.VISIBLE) {
 
             val item = items[position]
 
@@ -57,20 +56,14 @@ class VideoAdapter(private val items: MutableList<VideoItem?>, private val conte
 
             Glide.with(context).load(imgUrl).error(
                 Glide.with(context).load(fallbackUrl)
+                    .also { holder.imageUrl = fallbackUrl }
             ).into(holder.imgThumbnail)
 
-            holder.btnWatch.setOnClickListener {
+            if (holder.imageUrl.isEmpty())
+                holder.imageUrl = imgUrl
 
-                val appIntent = Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:${item.videoId.id}"))
-                val webIntent = Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("http://www.youtube.com/watch?v=${item.videoId.id}")
-                )
-                try {
-                    context.startActivity(appIntent)
-                } catch (ex: ActivityNotFoundException) {
-                    context.startActivity(webIntent)
-                }
+            holder.btnWatch.setOnClickListener {
+                callback.onClickedWatch(item.videoId.id)
             }
 
             holder.btnSave.setOnClickListener {
@@ -79,44 +72,53 @@ class VideoAdapter(private val items: MutableList<VideoItem?>, private val conte
 
                 Glide.with(context)
                     .asBitmap()
-                    .load(imgUrl).into(object: CustomTarget<Bitmap>() {
+                    .load(holder.imageUrl).into(object : CustomTarget<Bitmap>() {
 
                         override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
-                                bitmap = resource
-                                callback.onClickedSave(bitmap,
-                                    item.snippet.title + ".jpg",
-                                    item.snippet.description)
+                            bitmap = resource
+                            callback.onClickedSave(
+                                bitmap,
+                                item.snippet.title + ".jpg",
+                                item.snippet.description
+                            )
                         }
 
-                        override fun onLoadCleared(placeholder: Drawable?) { }
+                        override fun onLoadCleared(placeholder: Drawable?) {}
                     })
             }
 
             holder.imgThumbnail.setOnClickListener {
                 Glide.with(context)
                     .asBitmap()
-                    .load(imgUrl).into(object: CustomTarget<Bitmap>() {
+                    .load(holder.imageUrl).into(object : CustomTarget<Bitmap>() {
                         override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
                             callback.onClickedPreview(resource, item)
                         }
-                        override fun onLoadCleared(placeholder: Drawable?) { }
+
+                        override fun onLoadCleared(placeholder: Drawable?) {}
                     })
             }
         }
     }
 
-    fun addItems(items: List<VideoItem?>) {
-        val oldSize = this.items.size
-        this.items.addAll(items)
-        notifyItemRangeInserted(oldSize, items.size)
+    fun addEmptyItem() {
+        items.add(null)
+        notifyItemInserted(items.size - 1)
     }
 
-    fun removeLastNullItem() {
-        if(items.last() == null) {
-            val lastIndex = items.lastIndex
-            items.removeAt(lastIndex)
-            notifyItemRemoved(lastIndex)
-        }
+    fun isLoading(): Boolean {
+        return if (items.isNotEmpty())
+            items.last() == null
+        else
+            false
+    }
+
+    fun addItems(newItems: List<VideoItem?>) {
+        val oldSize = items.size
+        items.removeAt(items.size - 1)
+        notifyItemRemoved(items.size - 1)
+        items.addAll(newItems)
+        notifyItemRangeInserted(oldSize, newItems.size)
     }
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -126,11 +128,9 @@ class VideoAdapter(private val items: MutableList<VideoItem?>, private val conte
         val btnWatch: MaterialButton = view.btn_watch
         val tvVideoName: TextView = view.tv_video_name
         val tvChannelName: TextView = view.tv_channel_name
+        var imageUrl: String = ""
     }
 
-    inner class LoadingViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-
-    }
-
+    inner class LoadingViewHolder(view: View) : RecyclerView.ViewHolder(view)
 
 }

@@ -1,4 +1,4 @@
-package lt.thumbnaildownloader.api
+package lt.thumbnaildownloader.data
 
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient

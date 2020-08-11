@@ -1,4 +1,4 @@
-package lt.thumbnaildownloader.models
+package lt.thumbnaildownloader.data
 
 data class VideoListRequest (val part: String, val maxResults: Int, val searchWord: String, val pageToken: String, val key: String) {
 

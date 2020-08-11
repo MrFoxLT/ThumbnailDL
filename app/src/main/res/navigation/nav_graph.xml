@@ -3,20 +3,23 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/destinationVideos">
-
+    app:startDestination="@id/videoListFragment">
     <fragment
-        android:id="@+id/destinationVideos"
-        android:name="lt.thumbnaildownloader.fragments.VideoListFragment"
-        android:label="@string/first_fragment_label"
-        tools:layout="@layout/fragment_video_list">
+        android:id="@+id/videoListFragment"
+        android:name="lt.thumbnaildownloader.ui.fragments.VideoListFragment"
+        android:label="fragment_video_list"
+        tools:layout="@layout/fragment_video_list" >
         <action
-            android:id="@+id/action_destinationVideos_to_imagePreviewFragment"
+            android:id="@+id/action_videoListFragment_to_imagePreviewFragment"
             app:destination="@id/imagePreviewFragment" />
     </fragment>
     <fragment
         android:id="@+id/imagePreviewFragment"
-        android:name="lt.thumbnaildownloader.fragments.ImagePreviewFragment"
+        android:name="lt.thumbnaildownloader.ui.fragments.ImagePreviewFragment"
         android:label="fragment_image_preview"
         tools:layout="@layout/fragment_image_preview" />
+    <fragment
+        android:id="@+id/aboutFragment"
+        android:name="lt.thumbnaildownloader.ui.fragments.AboutFragment"
+        android:label="AboutFragment" />
 </navigation>

@@ -1,18 +1,16 @@
-package lt.thumbnaildownloader.api
+package lt.thumbnaildownloader.data
 
-import lt.thumbnaildownloader.models.VideoListResponse
-import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
 
 
-interface YoutubeClient {
+interface IYoutubeClient {
 
     //https://stackoverflow.com/questions/2068344/how-do-i-get-a-youtube-video-thumbnail-from-the-youtube-api
 
     @GET("search")
-    suspend fun searchForVideos(
+    suspend fun searchForVideos (
         @Query("part") part: String,
         @Query("maxResults") maxResults: Int,
         @Query("q") searchWord: String,

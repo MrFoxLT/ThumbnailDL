@@ -1,14 +1,15 @@
 # ThumbnailDL
 
-Android application that saves Youtube video thumbnails. For now, functionality is very basic. (no enlarged image view, infinite scrolling, ugly, etc.)
+Android application that saves Youtube video thumbnails.
+My Youtube API key a very low daily quota so if it gives you an error, add yours in the project.
+I will implement adding keys in-app later.
 
-[Screenshots](https://mrfoxlt.github.io)
+App is build with:
+* MVVM
+* Coroutines
+* Retfrofit
+* Glide
+* Navigation Components
 
-#### Todo list:
-
-* Endless list
-* Larger image preview
-* Prettier theme
-* Handling intents from Youtube application
-* Application icon
-* Better name?
+#### Apk builds:
+[Download here](https://github.com/CPlusPlusCompiler/ThumbnailDL/releases)

@@ -6,9 +6,12 @@
     <string name="second_fragment_label">Second Fragment</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
-    <string name="key">AIzaSyCmbvYf31zqbSbfGlSkjw04mKmoF5WT5UY</string>
-
+    <string name="key">[INSERT YOUR API KEY]</string>
     <string name="hello_first_fragment">Hello first fragment</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="ok">Ok</string>
+    <string name="settings_text">Settings</string>
+    <string name="about_text">About</string>
+    <string name="open_drawer">Open drawer</string>
+    <string name="close_drawer">Close drawer</string>
 </resources>

@@ -1,14 +1,17 @@
-package lt.thumbnaildownloader.fragments
+package lt.thumbnaildownloader.ui.fragments
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -17,31 +20,30 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.fragment_video_list.*
 import kotlinx.android.synthetic.main.fragment_video_list.view.*
-import lt.thumbnaildownloader.MainActivity
 import lt.thumbnaildownloader.R
-import lt.thumbnaildownloader.adapters.VideoAdapter
+import lt.thumbnaildownloader.data.Resource
+import lt.thumbnaildownloader.data.models.VideoItem
 import lt.thumbnaildownloader.interfaces.IVideoItemCallback
 import lt.thumbnaildownloader.interfaces.SearchCallback
-import lt.thumbnaildownloader.models.VideoItem
-import lt.thumbnaildownloader.viewmodels.VideoSearchViewModel
+import lt.thumbnaildownloader.ui.MainActivity
+import lt.thumbnaildownloader.ui.adapters.VideoAdapter
+import lt.thumbnaildownloader.ui.viewmodels.VideoSearchViewModel
 
 class VideoListFragment : Fragment(), SearchCallback {
 
     private lateinit var rvVideos: RecyclerView
-    private lateinit var viewModel: VideoSearchViewModel
+    private val viewModel by activityViewModels<VideoSearchViewModel>()
     private lateinit var navController: NavController
+    private var isSearchBlocked = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
 
         navController = findNavController()
         return inflater.inflate(R.layout.fragment_video_list, container, false)
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        // owner is MainActivity so we can use this ViewModel in PicturePreviewFragment
-        viewModel = ViewModelProvider(requireActivity()).get(VideoSearchViewModel::class.java)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -53,24 +55,27 @@ class VideoListFragment : Fragment(), SearchCallback {
         // if we're in this fragment, it's guaranteed that this bitmap is not needed
         viewModel.imageToView = null
 
-        viewModel.videoResult.observe(viewLifecycleOwner, Observer {
+        viewModel.videoListObservable.observe(viewLifecycleOwner, Observer { result ->
 
-            if(it.isSuccessful) {
-                viewModel.pageToken = it.nextPageToken
-
-                if(viewModel.page == 0) {
-                    initRecyclerView(it.items)
-                }
-                else {
-                    if(rvVideos.adapter != null && rvVideos.adapter is VideoAdapter) {
-                        val adapter = rvVideos.adapter as VideoAdapter
-                        val lastCount = adapter.itemCount
-                        addToRecyclerView(it.items.subList(lastCount, it.items.size).toList())
+            when(result) {
+                is Resource.Success -> {
+                    if (viewModel.page == 0) {
+                        initRecyclerView(result.data.toMutableList())
+                    }
+                    else {
+                        if (rvVideos.adapter == null) {
+                            initRecyclerView(result.data.toMutableList())
+                        }
+                        else if (rvVideos.adapter is VideoAdapter) {
+                            val adapter = rvVideos.adapter as VideoAdapter
+                            adapter.addItems(result.data.subList(adapter.itemCount - 1, result.data.size - 1))
+                            isSearchBlocked = false
+                        }
                     }
                 }
-            }
-            else {
-                showDialog(it.message)
+                is Resource.Failure -> {
+                    showDialog(result.message)
+                }
             }
         })
     }
@@ -80,13 +85,6 @@ class VideoListFragment : Fragment(), SearchCallback {
 
         val mainActivity = activity as MainActivity
         mainActivity.addSearchCallback(this)
-    }
-
-    private fun addToRecyclerView(items: List<VideoItem?>) {
-
-        val adapter = rvVideos.adapter as VideoAdapter
-        adapter.removeLastNullItem()
-        adapter.addItems(items)
     }
 
     private fun showDialog(message: String) {
@@ -113,8 +111,24 @@ class VideoListFragment : Fragment(), SearchCallback {
         override fun onClickedPreview(bitmap: Bitmap?, item: VideoItem) {
             viewModel.imageToView = bitmap
 
-            findNavController().navigate(VideoListFragmentDirections
-                .actionDestinationVideosToImagePreviewFragment())
+            findNavController().navigate(
+                VideoListFragmentDirections
+                    .actionVideoListFragmentToImagePreviewFragment()
+            )
+        }
+
+        override fun onClickedWatch(videoId: String) {
+            val appIntent = Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:${videoId}"))
+            val webIntent = Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("http://www.youtube.com/watch?v=${videoId}")
+            )
+            try {
+                requireContext().startActivity(appIntent)
+            }
+            catch (ex: ActivityNotFoundException) {
+                requireContext().startActivity(webIntent)
+            }
         }
     }
 
@@ -133,11 +147,12 @@ class VideoListFragment : Fragment(), SearchCallback {
                 super.onScrollStateChanged(recyclerView, newState)
 
                 if (!recyclerView.canScrollVertically(1)) {
-                    if (items.last() != null) {
+                    if (!adapter.isLoading())
+                        adapter.addEmptyItem()
 
-                        items.add(null)
-                        adapter.notifyItemInserted(items.lastIndex)
+                    if (!isSearchBlocked) {
                         viewModel.searchForMoreVideos()
+                        isSearchBlocked = true
                     }
                 }
             }
