@@ -1,8 +1,7 @@
 # ThumbnailDL
 
 Android application that saves Youtube video thumbnails.
-My Youtube API key a very low daily quota so if it gives you an error, add yours in the project.
-I will implement adding keys in-app later.
+My Youtube API key has a very low daily quota so if it gives you an error, add yours in the project.
 
 App is build with:
 * MVVM
